@@ -1,0 +1,9 @@
+Frontend:   Next.js 14 (App Router) + React + TailwindCSS + Recharts
+Backend:    Next.js API Routes + Node.js
+Database:   PostgreSQL (Prisma ORM)
+AI:         OpenAI GPT-4 (pluggable provider)
+Auth:       JWT + bcrypt + role-based permissions
+Queue:      In-process scheduler (node-cron) for reminders/automation
+Comms:      Email (Nodemailer), SMS/WhatsApp (Twilio adapters)
+Security:   CSRF, XSS sanitization, rate limiting, input validation, AES encryption
+Deploy:     Docker + docker-compose
