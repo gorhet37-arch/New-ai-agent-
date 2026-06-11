@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  AGENT
+  VIEWER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  BOOKED
+  COMPLETED
+  LOST
+}
+
+enum LeadTemp {
+  COLD
+  WARM
+  HOT
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  NO_SHOW
+  CANCELLED
+  RESCHEDULED
+}
+
+enum Channel {
+  EMAIL
+  SMS
+  WHATSAPP
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      Role     @default(AGENT)
+  createdAt DateTime @default(now())
+  appointments Appointment[]
+}
+
+model Lead {
+  id            String     @id @default(cuid())
+  name          String?
+  email         String?
+  phone         String?
+  company       String?
+  businessType  String?
+  serviceNeeded String?
+  budget        String?
+  timeline      String?
+  source        String     @default("website_chat")
+  status        LeadStatus @default(NEW)
+  score         Int        @default(0)
+  temperature   LeadTemp   @default(COLD)
+  sentiment     String?    // positive | neutral | negative
+  intent        String?
+  // Enrichment
+  website       String?
+  socialProfiles String?   // JSON
+  businessSize  String?
+  industry      String?
+  // Revenue
+  revenueGenerated Float    @default(0)
+  reviewStatus  String     @default("none") // none|requested|completed
+  lastActiveAt  DateTime   @default(now())
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  messages      Message[]
+  appointments  Appointment[]
+  events        AutomationEvent[]
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  role      String   // user | assistant | system
+  content   String
+  agent     String?  // welcome|capture|qualify...
+  sentiment String?
+  createdAt DateTime @default(now())
+}
+
+model Appointment {
+  id           String            @id @default(cuid())
+  leadId       String
+  lead         Lead              @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  userId       String?
+  user         User?             @relation(fields: [userId], references: [id])
+  startTime    DateTime
+  endTime      DateTime
+  timezone     String            @default("UTC")
+  location     String?
+  meetingLink  String?
+  status       AppointmentStatus @default(SCHEDULED)
+  notes        String?
+  createdAt    DateTime          @default(now())
+
+  reminders    Reminder[]
+}
+
+model Reminder {
+  id            String      @id @default(cuid())
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  offsetMinutes Int         // 1440, 720, 60, 15
+  channel       Channel
+  scheduledFor  DateTime
+  sent          Boolean     @default(false)
+  delivered     Boolean     @default(false)
+  sentAt        DateTime?
+}
+
+model AutomationEvent {
+  id        String   @id @default(cuid())
+  leadId    String?
+  lead      Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type      String   // CONFIRMATION, REMINDER, NO_SHOW_RECOVERY, REVIEW, RETENTION, UPSELL, REFERRAL
+  channel   String?
+  payload   String?  // JSON
+  status    String   @default("pending")
+  runAt     DateTime @default(now())
+  createdAt DateTime @default(now())
+}
+
+model AnalyticsSnapshot {
+  id        String   @id @default(cuid())
+  date      DateTime @default(now())
+  visitors  Int      @default(0)
+  leads     Int      @default(0)
+  qualified Int      @default(0)
+  booked    Int      @default(0)
+  noShows   Int      @default(0)
+  conversions Int    @default(0)
+  revenue   Float    @default(0)
+  reviews   Int      @default(0)
+}
